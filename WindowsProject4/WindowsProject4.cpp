@@ -38,6 +38,15 @@ Sprite player;           // игрок
 vector<Location> locations; // все локации
 int currentLocation = 0; // текущая локация
 
+//Попытка сделать ХП
+int max_HP[4];
+
+struct SpriteHP{
+    float x, y, width, height;
+    HBITMAP hBitmap;
+};
+SpriteHP HP[4];
+
 struct
 {
     bool action = false; // состояние - ожидание (игрок должен нажать пробел) или игра
@@ -46,7 +55,7 @@ struct
 struct
 {
     HWND hWnd;           // хэндл окна
-    HDC device_context, context; // два контекста устройства (для буферизации)
+    HDC device_context, context; // два контекста устройства
     int width, height;   // сюда сохраним размеры окна
 } Window;
 
@@ -55,7 +64,7 @@ auto lastTime = chrono::high_resolution_clock::now();
 
 // Секция кода
 
-// Функция проверки загрузки изображения (Unicode версия)
+// Функция проверки загрузки изображения
 HBITMAP LoadBitmapSafe(const wchar_t* filename)
 {
     HBITMAP hBitmap = (HBITMAP)LoadImageW(NULL, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
@@ -87,6 +96,16 @@ wstring FloatToWString(float value)
 // Инициализация игры
 void InitGame()
 {
+    int i;
+    for (i=0; i<3; i++)
+    {
+        HP[i].x = 200;
+        HP[i].y = 40;
+        HP[i].width = 40;
+        HP[i].height= 40;
+        cout
+    }
+    
     // Загружаем спрайт игрока
     player.hBitmap = LoadBitmapSafe(L"rash.bmp");
 
@@ -94,26 +113,26 @@ void InitGame()
     player.width = 128;
     player.height = 210;
     player.speed = 10.0f;
-    player.gravity = 1.5f; // Увеличена гравитация для более быстрого падения
-    player.jumpForce = 30.0f; // Увеличена сила прыжка
+    player.gravity = 1.5f;
+    player.jumpForce = 30.0f;
     player.velocityY = 0;
     player.isJumping = false;
     player.isOnGround = false;
     player.wasOnGround = false;
 
-    // Устанавливаем уровень земли в два раза ниже (примерно на середине экрана)
+    // Устанавливаем уровень земли
     float groundLevel = Window.height / 2;
 
     player.x = Window.width / 2.0f;
-    player.y = groundLevel - player.height; // Игрок стоит на земле
+    player.y = groundLevel - player.height;
 
-    // Создаем первую локацию
+    // Первая локация
     Location loc1;
     loc1.id = 0;
     loc1.groundLevel = groundLevel;
     loc1.background = LoadBitmapSafe(L"back1.bmp");
 
-    // Платформы с фиксированной высотой
+    // Платформы
     Platform plat1;
     plat1.width = 300;
     plat1.height = 30;
@@ -148,13 +167,13 @@ void InitGame()
     loc1.platforms.push_back(plat2);
     loc1.platforms.push_back(plat3);
 
-    // Создаем вторую локацию
+    // Вторая локация
     Location loc2;
     loc2.id = 1;
     loc2.groundLevel = groundLevel;
     loc2.background = LoadBitmapSafe(L"back2.bmp");
 
-    // Платформы во второй локации с фиксированной высотой
+    // Платформы во второй локации
     Platform plat4;
     plat4.width = 350;
     plat4.height = 30;
@@ -193,17 +212,7 @@ void InitGame()
     locations.push_back(loc2);
 }
 
-// Функция проверки коллизии AABB
-bool CheckCollision(float x1, float y1, float w1, float h1,
-    float x2, float y2, float w2, float h2)
-{
-    return (x1 < x2 + w2 &&
-        x1 + w1 > x2 &&
-        y1 < y2 + h2 &&
-        y1 + h1 > y2);
-}
-
-// Улучшенная функция проверки коллизии с платформами
+// Проверки коллизии с платформами
 void CheckPlatformCollisions()
 {
     Location& loc = locations[currentLocation];
@@ -211,7 +220,7 @@ void CheckPlatformCollisions()
     // Сохраняем предыдущее состояние
     player.wasOnGround = player.isOnGround;
 
-    // Сначала проверяем, находимся ли мы уже на земле
+    // Проверяем, находимся ли мы уже на земле
     bool wasOnPlatform = player.isOnGround;
     player.isOnGround = false;
 
@@ -253,7 +262,7 @@ void CheckPlatformCollisions()
                 // Рассчитываем расстояние до платформы
                 float distanceToPlatform = playerBottom - platformTop;
 
-                // Если мы достаточно близко к платформе сверху (и падаем или стоим)
+                // Если мы достаточно близко к платформе сверху
                 if (distanceToPlatform >= 0 && distanceToPlatform < 30.0f)
                 {
                     // Проверяем, не пытаемся ли мы пройти сквозь платформу снизу
@@ -267,15 +276,14 @@ void CheckPlatformCollisions()
                     }
                 }
             }
-            // Если игрок под платформой и прыгает вверх - игнорируем (можно пройти сквозь снизу)
         }
     }
 }
 
-// Проверка перехода в следующую локацию с ограничениями
+// Проверка перехода в следующую локацию
 void CheckLocationTransition()
 {
-    // Локация 0 -> Локация 1 только через правую сторону
+    // Локация 0 -> Локация 1
     if (currentLocation == 0)
     {
         if (player.x > Window.width - player.width / 2)
@@ -294,7 +302,7 @@ void CheckLocationTransition()
             player.x = 0;
         }
     }
-    // Локация 1 -> Локация 0 только через левую сторону
+    // Локация 1 -> Локация 0
     else if (currentLocation == 1)
     {
         if (player.x < -player.width / 2)
@@ -315,7 +323,7 @@ void CheckLocationTransition()
     }
 }
 
-// Прыжок - улучшенная версия
+// Прыжок
 void StartJump()
 {
     if ((player.isOnGround || player.wasOnGround) && !player.isJumping)
@@ -333,7 +341,7 @@ void ShowScore()
     SetBkColor(Window.context, RGB(0, 0, 0));
     SetBkMode(Window.context, TRANSPARENT);
 
-    // Используем шрифт по умолчанию для Unicode
+    // Шрифт
     auto hFont = CreateFontW(20, 0, 0, 0, FW_NORMAL, 0, 0, 0,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
@@ -352,7 +360,7 @@ void ShowScore()
     wstring velocityStr = L"VelocityY: " + FloatToWString(player.velocityY);
     TextOutW(Window.context, 10, 60, velocityStr.c_str(), (int)velocityStr.length());
 
-    // Было ли на земле
+    // Был ли на земле
     wstring wasGroundStr = L"WasGround: " + wstring(player.wasOnGround ? L"Yes" : L"No");
 
     SelectObject(Window.context, hOldFont);
@@ -370,7 +378,7 @@ void ProcessInput(float deltaTime)
     if (GetAsyncKeyState(VK_RIGHT) & 0x8000)
         player.x += moveSpeed;
 
-    // Прыжок (только при нажатии, не удержании)
+    // Прыжок
     static bool upKeyPressed = false;
     bool upKeyCurrent = (GetAsyncKeyState(VK_UP) & 0x8000) != 0;
 
@@ -398,7 +406,7 @@ void ShowBitmap(HDC hDC, int x, int y, int w, int h, HBITMAP hBitmap)
     DeleteDC(hMemDC);
 }
 
-// Отображение платформ (упрощенная текстура - один цвет)
+// Отображение платформ
 void ShowPlatforms()
 {
     Location& loc = locations[currentLocation];
@@ -406,11 +414,10 @@ void ShowPlatforms()
     // Рисуем платформы одним простым цветом
     for (auto& platform : loc.platforms)
     {
-        // Создаем простую кисть одного цвета для платформ
-        HBRUSH hBrush = CreateSolidBrush(RGB(139, 69, 19)); // Коричневый цвет
+        // Платформы
+        HBRUSH hBrush = CreateSolidBrush(RGB(139, 69, 19));
         HBRUSH hOldBrush = (HBRUSH)SelectObject(Window.context, hBrush);
 
-        // Рисуем прямоугольник платформы
         Rectangle(Window.context,
             (int)platform.x, (int)platform.y,
             (int)(platform.x + platform.width),
@@ -437,7 +444,7 @@ void ShowGame()
         ShowBitmap(Window.context, 0, 0, Window.width, Window.height, loc.background);
     }
 
-    // Платформы (упрощенный вид)
+    // Платформы
     ShowPlatforms();
 
     // Игрок
@@ -455,10 +462,10 @@ void LimitPlayer()
     CheckLocationTransition();
 }
 
-// Обновление физики с дельта-таймом
+// Обновление физики
 void UpdatePhysics(float deltaTime)
 {
-    // Применяем гравитацию с учетом дельта-тайма
+    // Применяем гравитацию
     if (!player.isOnGround)
     {
         player.velocityY += player.gravity * deltaTime * 60.0f;
